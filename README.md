@@ -4,6 +4,17 @@ It is a school project. I partially implemented a borrow checker and a backend g
 C code for a subset of Rust. The borrow checker does not perfectly work and the backend is
 quite naive.
 
+## Usage
+
+There is a script that means to generate a C version of a given MiniRust program. It runs
+the typechecker and the borrow checker before generating anything.
+
+```bash
+$ chmod +x ./c_of_minirust.sh
+$ ./c_of_minirust.sh your_minirust_file.rs
+# Your folder now contains 'your_minirust_file.c'
+```
+
 ## Results
 
 On 94 tests, this implementations passes 91 of them. In the 3 that do not check, 2 do
