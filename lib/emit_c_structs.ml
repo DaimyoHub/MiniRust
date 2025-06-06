@@ -14,7 +14,11 @@ let make_struct_deps_graph prog =
     prog;
   struct_deps
 
-let emit prog =
+let emit_proto fmt sdef =
+  Format.fprintf fmt "struct %s;\n" sdef.sname.id;
+  Format.fprintf fmt "\n"
+
+let emit fmt prog =
   let struct_deps = make_struct_deps_graph prog in
   let structs_count = Hashtbl.length struct_deps in
 
@@ -27,7 +31,7 @@ let emit prog =
       if not (is_in v) then (
         add v;
         List.iter loop (match Hashtbl.find_opt struct_deps v with Some l -> l | _ -> []);
-        Emit_c.emit_struct Format.std_formatter (get_struct_def prog v))
+        Emit_c.emit_struct fmt (get_struct_def prog v))
     in
     loop source
   in

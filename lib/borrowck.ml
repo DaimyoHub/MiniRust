@@ -66,14 +66,9 @@ let compute_lft_sets prog mir : lifetime -> PpSet.t =
           match rv with
           (* If the rvalue is place or an operation between places, it is straightforward,
              we just unify lvalue's and rvalue's lifetimes. *)
-          | RVplace rv_pl | RVunop (_, rv_pl) ->
+          | RVplace rv_pl ->
               let rv_pl_typ = top rv_pl in
               unify_typs_lfts pl_typ rv_pl_typ
-          | RVbinop (_, lpl, rpl) ->
-              let lpl_typ, rpl_typ = top lpl, top rpl in
-              unify_typs_lfts lpl_typ rpl_typ;
-              unify_typs_lfts lpl_typ pl_typ;
-              unify_typs_lfts rpl_typ pl_typ
           | RVborrow (_, rv_pl) ->
               let rec add_reborrow_constraint = function
                 (* If the rvalue is a reborrow, we must add outlive relations between the
@@ -81,10 +76,9 @@ let compute_lft_sets prog mir : lifetime -> PpSet.t =
                 | PlDeref rv_pl -> (
                     match get_lft (top pl), get_lft (top rv_pl) with
                     | Some pl_lft, Some rv_pl_lft -> add_outlives (rv_pl_lft, pl_lft)
-                    | _ ->
-                        ();
+                    | _ -> ();
 
-                        add_reborrow_constraint rv_pl)
+                    add_reborrow_constraint rv_pl)
                 (* If the rvalue is a borrow, we must unify its lifetime with the lvalue's
                    one *)
                 | _ -> unify_typs_lfts (top pl) (top rv_pl)
@@ -103,12 +97,12 @@ let compute_lft_sets prog mir : lifetime -> PpSet.t =
               (* The we unify the lvalue's lifetimes with the fresh ones *)
               unify_typs_lfts (top pl) struct_typ
           (* If the rvalue is a constant, we do not need to unify any lifetimes. *)
-          | RVconst _ | RVunit -> ())
+          | _ -> ())
       | Icall (fid, params_pls, ret, _) ->
           let params_typs, ret_typ, outlives = fn_prototype_fresh prog fid in
 
           (* We add the outlives relations of the function. *)
-          List.iter (fun olr -> add_outlives olr) outlives;
+          List.iter add_outlives outlives;
 
           (* Then we unify fresh parameters' lifetimes with parameters' lifetimes *)
           List.iter2
@@ -146,6 +140,7 @@ let compute_lft_sets prog mir : lifetime -> PpSet.t =
   *)
 
   (* Task n°4 : BEGIN ******************************************************************)
+
   Array.iteri
     (fun label _ ->
       (* We add living constraints for free lifetimes of live locals *)
@@ -215,6 +210,7 @@ let borrowck prog mir =
   (* We check the code honors the non-mutability of shared borrows. *)
 
   (* Task n°2 : BEGIN ******************************************************************)
+
   let err loc = Error.error loc "Creating a mutable borrow below a shared borrow" in
 
   let is_mut_bor pl =
@@ -268,6 +264,7 @@ let borrowck prog mir =
     mir.minstrs;
 
   (* Task n°2 : END ********************************************************************)
+
   let lft_sets = compute_lft_sets prog mir in
 
   (* TODO: check that outlives constraints declared in the prototype of the function are

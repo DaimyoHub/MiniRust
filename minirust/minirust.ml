@@ -18,7 +18,7 @@ let () =
             let mir = Emit_minimir.emit_fun prog fd in
             Hashtbl.add fdefs fd mir;
 
-            if Sys.getenv_opt "MINIMIR" <> None then (
+            if Sys.getenv_opt "MINIMIR" <> None && Sys.getenv_opt "C" = None then (
               Printf.printf "=== %s ===\n" fd.fname.id;
               Print_minimir.print mir;
               Printf.printf "\n");
@@ -28,12 +28,27 @@ let () =
       prog;
 
     if Sys.getenv_opt "C" <> None && Sys.getenv_opt "MINIMIR" = None then (
-      Emit_c_structs.emit prog;
+      let basename =
+        match String.split_on_char '.' filename with
+        | x :: _ -> x
+        | [] -> "" (* should be unreachable ? *)
+      in
+      let output_file = open_out (basename ^ ".c") in
+      let fmt = Format.formatter_of_out_channel output_file in
 
       Hashtbl.iter
         (fun _ d ->
           match d with
-          | Dfundef fd -> Emit_c.emit_fun_proto Format.std_formatter fd
+          | Dstruct sd -> Emit_c_structs.emit_proto fmt sd
+          | _ -> ())
+        prog;
+
+      Emit_c_structs.emit fmt prog;
+
+      Hashtbl.iter
+        (fun _ d ->
+          match d with
+          | Dfundef fd -> Emit_c.emit_fun_proto fmt fd
           | _ -> ())
         prog;
 
@@ -42,10 +57,12 @@ let () =
           match d with
           | Dfundef fd ->
               let mir = Hashtbl.find fdefs fd in
-              Emit_c.emit_fun_body Format.std_formatter prog mir fd;
+              Emit_c.emit_fun_body fmt prog mir fd;
               Printf.printf "\n"
           | _ -> ())
-        prog)
+        prog;
+
+      close_out output_file);
   with Error.Error (start, end_, msg) ->
     Printf.eprintf "%s" (MenhirLib.LexerUtil.range (start, end_));
     Printf.eprintf "%s\n" msg;

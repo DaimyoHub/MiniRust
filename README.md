@@ -10,9 +10,7 @@ There is a script that means to generate a C version of a given MiniRust program
 the typechecker and the borrow checker before generating anything.
 
 ```bash
-$ chmod +x ./c_of_minirust.sh
-$ ./c_of_minirust.sh your_minirust_file.rs
-# Your folder now contains 'your_minirust_file.c'
+$ C=1 minirust/minirust.exe your_code.rs
 ```
 
 ## Results
@@ -22,9 +20,12 @@ not return an error but should, and 1 returns an error but should not.
 
 ## Extension : C backend
 
-I made a simple C backend that translates MiniMir programs to C programs. The only tricky
-part of the backend resides in the resolution of structures direct dependencies with each
-other.
+I made a simple C backend that translates MiniMir programs to C programs. The translation
+of instructions from MiniMir to C is linear and does not need any specific algorithm. As
+a consequence, the generated C program is not idiomatic and uses a lot of labels. But
+since the backend assumes that the MiniMir source program is correct, the C target program
+should be correct too. The only tricky part of the backend resides in the resolution of
+structures direct dependencies with each other.
 
 The algorithm behind is quite straightforward :
   - I compute the structures' dependency graph
@@ -35,6 +36,11 @@ The algorithm behind is quite straightforward :
 Every structure that has been already emitted by the backend is marked, in order not to
 emit it several times.
 
+The algorithm computes the **direct** dependencies between structures. So if one structure
+uses another structure that has not been defined yet, through an indirection, there is
+nothing tricky to think of and I just generate the corresponding C structure definition.
+However, structures prototypes must be provided at the very beginning of the C program.
+
 Detail : The reference implementation of MiniRust seems to compile when the program
-contains cyclic structures dependencies. I took the freedom to prohibit it in my
-implementation, because I did not see any way of generating it in C with a simple backend.
+contains cyclic structures dependencies. I took the freedom not to take it into account
+in my implementation.

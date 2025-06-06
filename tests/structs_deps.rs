@@ -1,7 +1,7 @@
 struct D {
   x : B,
   y : A,
-  z : E
+  z : B
 }
 
 struct E {

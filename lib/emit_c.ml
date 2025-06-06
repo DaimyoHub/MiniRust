@@ -1,12 +1,6 @@
 open Minimir
 open Ast
 
-let call_count =
-  let count = ref (-1) in
-  fun () ->
-    incr count;
-    !count
-
 let rec string_of_typ = function
   | Tbool | Ti32 -> "int"
   | Tunit -> "int"
@@ -117,11 +111,10 @@ let emit_instr fmt prog label instr =
       | RVmake (sname, fields_pls) ->
           emit_struct_assign fmt (string_of_place pl) (get_struct_def prog sname)
             fields_pls
-      | _ ->
-          ();
+      | _ -> ();
 
-          emit_label ();
-          Format.fprintf fmt "%s = %s;\n" (string_of_place pl) (string_of_rvalue prog rv))
+      emit_label ();
+      Format.fprintf fmt "%s = %s;\n" (string_of_place pl) (string_of_rvalue prog rv))
   | Icall (fun_name, args, ret, _) ->
       emit_label ();
       Format.fprintf fmt "%s = %s(%s);\n" (string_of_place ret) fun_name
